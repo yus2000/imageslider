@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Slider Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; display: flex; justify-content: center; }
+        .card { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input, select, button { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #007BFF; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        #admin-panel, #login-section { display: none; }
+        ul { list-style: none; padding: 0; }
+        li { background: #f9f9f9; padding: 10px; margin-bottom: 8px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
+        .del-btn { background: #dc3545; width: auto; padding: 5px 10px; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <!-- Bagian Login Admin -->
+        <div id="login-section">
+            <h2>🔐 Login Admin</h2>
+            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Masukkan password untuk mengelola konten.</p>
+            <input type="password" id="passwordInput" placeholder="Password Admin">
+            <button onclick="checkLogin()">Masuk</button>
+        </div>
+
+        <!-- Bagian Panel Manajemen -->
+        <div id="admin-panel">
+            <h2>⚙️ Kelola Konten Slider</h2>
+            
+            <label>Pilih File Gambar / Video:</label>
+            <input type="file" id="fileUpload" accept="image/*,video/*">
+            
+            <button onclick="uploadAndAddSlide()" id="btnUpload">Upload & Tambahkan</button>
+            <button onclick="location.href='index.html'" style="background: #6c757d;">Kembali ke Tampilan Slider</button>
+            
+            <h3>Daftar Konten di Server:</h3>
+            <ul id="slideList">
+                <li>Memuat daftar...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASSWORD = "rahasia123"; // Ganti password admin Anda di sini
+
+        // Konfigurasi Supabase (Harus sama dengan script.js)
+        const SUPABASE_URL = 'GANTI_DENGAN_URL_SUPABASE_ANDA';
+        const SUPABASE_ANON_KEY = 'GANTI_DENGAN_ANON_KEY_SUPABASE_ANDA';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function checkLogin() {
+            let pass = document.getElementById("passwordInput").value;
+            if (pass === ADMIN_PASSWORD) {
+                document.getElementById("login-section").style.display = "none";
+                document.getElementById("admin-panel").style.display = "block";
+                loadSlidesAdmin();
+            } else {
+                alert("Password Salah!");
+            }
+        }
+
+        // Default tampilkan login saat halaman dibuka
+        document.getElementById("login-section").style.display = "block";
+
+        async function loadSlidesAdmin() {
+            let list = document.getElementById("slideList");
+            let { data, error } = await supabaseClient.from('slides').select('*');
+            
+            if (error) {
+                list.innerHTML = "<li>Gagal memuat data dari database.</li>";
+                return;
+            }
+
+            list.innerHTML = "";
+            if(data.length === 0) {
+                list.innerHTML = "<li>Belum ada konten tersimpan.</li>";
+            }
+
+            data.forEach((slide) => {
+                let filename = slide.url.split('/').pop();
+                list.innerHTML += `
+                    <span>[${slide.type.toUpperCase()}] ${filename.substring(0, 20)}...</span>
+                    <button class="del-btn" onclick="deleteSlide(${slide.id}, '${slide.url}')">Hapus</button>
+                `;
+            });
+        }
+
+        async function uploadAndAddSlide() {
+            const fileInput = document.getElementById('fileUpload');
+            const file = fileInput.files[0];
+            if (!file) return alert("Pilih file terlebih dahulu!");
+
+            const btn = document.getElementById('btnUpload');
+            btn.innerText = "Sedang Mengunggah...";
+            btn.disabled = true;
+
+            let fileType = file.type.startsWith('video') ? 'video' : 'image';
+            let fileName = Date.now() + "_" + file.name;
+
+            // 1. Upload file ke Supabase Storage (bucket: slider-media)
+            const { data: storageData, error: storageError } = await supabaseClient.storage
+                .from('slider-media')
+                .upload(fileName, file);
+
+            if (storageError) {
+                alert("Gagal upload file: " + storageError.message);
+                btn.innerText = "Upload & Tambahkan";
+                btn.disabled = false;
+                return;
+            }
+
+            // 2. Dapatkan Public URL dari file yang di-upload
+            const { data: publicUrlData } = supabaseClient.storage
+                .from('slider-media')
+                .getPublicUrl(fileName);
+
+            let publicUrl = publicUrlData.publicUrl;
+
+            // 3. Simpan link URL ke Database Tabel 'slides'
+            const { error: dbError } = await supabaseClient
+                .from('slides')
+                .insert([{ type: fileType, url: publicUrl }]);
+
+            if (dbError) {
+                alert("Gagal menyimpan ke database: " + dbError.message);
+            } else {
+                alert("Konten berhasil ditambahkan!");
+                fileInput.value = "";
+                loadSlidesAdmin();
+            }
+
+            btn.innerText = "Upload & Tambahkan";
+            btn.disabled = false;
+        }
+
+        async function deleteSlide(id, url) {
+            if(!confirm("Yakin ingin menghapus konten ini?")) return;
+
+            // Hapus data dari database
+            const { error } = await supabaseClient.from('slides').delete().eq('id', id);
+            
+            if(error) {
+                alert("Gagal menghapus: " + error.message);
+            } else {
+                alert("Konten berhasil dihapus.");
+                loadSlidesAdmin();
+            }
+        }
+    </script>
+</body>
+</html>

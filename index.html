@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Signage Slider - Supabase Offline-First</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- SDK Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- Container Slider -->
+    <div id="slider-container">
+        <div id="slide-content">
+            <div style="color: white; text-align: center;">Memuat konten...</div>
+        </div>
+    </div>
+
+    <!-- Tombol Kontrol Melayang di Atas Slider -->
+    <div id="controls">
+        <button id="btnFullscreen" onclick="toggleFullScreen()">⛶ Fullscreen</button>
+        <button onclick="location.href='admin.html'">⚙️ Admin</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
