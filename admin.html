@@ -89,54 +89,56 @@
                 `;
             });
         }
+async function uploadAndAddSlide() {
+    const fileInput = document.getElementById('fileUpload');
+    const file = fileInput.files[0];
+    if (!file) return alert("Pilih file terlebih dahulu!");
 
-        async function uploadAndAddSlide() {
-            const fileInput = document.getElementById('fileUpload');
-            const file = fileInput.files[0];
-            if (!file) return alert("Pilih file terlebih dahulu!");
+    const btn = document.getElementById('btnUpload');
+    btn.innerText = "Sedang Mengunggah...";
+    btn.disabled = true;
 
-            const btn = document.getElementById('btnUpload');
-            btn.innerText = "Sedang Mengunggah...";
-            btn.disabled = true;
+    let fileType = file.type.startsWith('video') ? 'video' : 'image';
+    
+    // PERBAIKAN: Bersihkan spasi dan karakter khusus pada nama file asli
+    let safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
+    let fileName = Date.now() + "_" + safeName;
 
-            let fileType = file.type.startsWith('video') ? 'video' : 'image';
-            let fileName = Date.now() + "_" + file.name;
+    // 1. Upload file ke Supabase Storage (Pastikan bucket 'slider-media' sudah ada)
+    const { data: storageData, error: storageError } = await supabaseClient.storage
+        .from('slider-media')
+        .upload(fileName, file);
 
-            // 1. Upload file ke Supabase Storage (bucket: slider-media)
-            const { data: storageData, error: storageError } = await supabaseClient.storage
-                .from('slider-media')
-                .upload(fileName, file);
+    if (storageError) {
+        alert("Gagal upload file: " + storageError.message);
+        btn.innerText = "Upload & Tambahkan";
+        btn.disabled = false;
+        return;
+    }
 
-            if (storageError) {
-                alert("Gagal upload file: " + storageError.message);
-                btn.innerText = "Upload & Tambahkan";
-                btn.disabled = false;
-                return;
-            }
+    // 2. Dapatkan Public URL dari file yang di-upload
+    const { data: publicUrlData } = supabaseClient.storage
+        .from('slider-media')
+        .getPublicUrl(fileName);
 
-            // 2. Dapatkan Public URL dari file yang di-upload
-            const { data: publicUrlData } = supabaseClient.storage
-                .from('slider-media')
-                .getPublicUrl(fileName);
+    let publicUrl = publicUrlData.publicUrl;
 
-            let publicUrl = publicUrlData.publicUrl;
+    // 3. Simpan link URL ke Database Tabel 'slides'
+    const { error: dbError } = await supabaseClient
+        .from('slides')
+        .insert([{ type: fileType, url: publicUrl }]);
 
-            // 3. Simpan link URL ke Database Tabel 'slides'
-            const { error: dbError } = await supabaseClient
-                .from('slides')
-                .insert([{ type: fileType, url: publicUrl }]);
+    if (dbError) {
+        alert("Gagal menyimpan ke database: " + dbError.message);
+    } else {
+        alert("Konten berhasil ditambahkan!");
+        fileInput.value = "";
+        loadSlidesAdmin();
+    }
 
-            if (dbError) {
-                alert("Gagal menyimpan ke database: " + dbError.message);
-            } else {
-                alert("Konten berhasil ditambahkan!");
-                fileInput.value = "";
-                loadSlidesAdmin();
-            }
-
-            btn.innerText = "Upload & Tambahkan";
-            btn.disabled = false;
-        }
+    btn.innerText = "Upload & Tambahkan";
+    btn.disabled = false;
+}
 
         async function deleteSlide(id, url) {
             if(!confirm("Yakin ingin menghapus konten ini?")) return;
