@@ -1,6 +1,6 @@
 // Konfigurasi Supabase Anda
-const SUPABASE_URL = 'https://voayxgrxsehjynulutsx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvYXl4Z3J4c2VoanludWx1dHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNDA3MDgsImV4cCI6MjEwMDgxNjcwOH0.RJfPjzBonn8v3pl3Az3XeFE46W4yMyuHdDe9tOp9yfA';
+const SUPABASE_URL = https://voayxgrxsehjynulutsx.supabase.co;
+const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvYXl4Z3J4c2VoanludWx1dHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNDA3MDgsImV4cCI6MjEwMDgxNjcwOH0.RJfPjzBonn8v3pl3Az3XeFE46W4yMyuHdDe9tOp9yfA;
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let slides = [];
