@@ -9,25 +9,28 @@ let slideInterval = 5000; // Durasi gambar (5 detik)
 
 async function fetchAndSyncSlides() {
     try {
-        // Coba ambil data terbaru dari Supabase (jika ada internet)
         let { data, error } = await supabaseClient.from('slides').select('*');
-        if (!error && data && data.length > 0) {
+        
+        // TAMBAHKAN BARIS INI UNTUK MELIHAT ERROR ASLINYA DI CONSOLE:
+        if (error) {
+            console.error("DETAIL ERROR SUPABASE:", error);
+            throw error;
+        }
+
+        if (data && data.length > 0) {
             slides = data;
-            // Simpan ke localStorage sebagai cache offline
             localStorage.setItem('offline_slides', JSON.stringify(slides));
             console.log("Data berhasil disinkronkan dari Supabase.");
         } else {
-            throw new Error("Gagal ambil dari server, pakai cache lokal.");
+            console.log("Tabel slides di Supabase kosong.");
         }
     } catch (err) {
-        console.log("Koneksi internet terputus/gagal. Menggunakan mode Offline.");
-        // Ambil data cadangan dari memori lokal Smart TV
+        console.log("Koneksi/Ambil data gagal. Masuk mode offline. Alasan:", err.message);
         let localData = localStorage.getItem('offline_slides');
         if (localData) {
             slides = JSON.parse(localData);
         } else {
-            // Data default darurat jika belum pernah tersinkron sama sekali
-            slides = [{ type: 'image', url: 'https://via.placeholder.com/1920x1080.png?text=Belum+Ada+Konten' }];
+            slides = [{ type: 'image', url: 'https://via.placeholder.com/1920x1080.png?text=Belum+Ada+Konten+Offline' }];
         }
     }
     renderSlide();
